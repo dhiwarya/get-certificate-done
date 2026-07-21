@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ResourceStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum NotificationType {
+  RESOURCE_DUE
+  CERTIFICATION_DUE
+  SKILL_INACTIVE
+}
+
+model Skill {
+  id                   String         @id @default(uuid()) @db.Uuid
+  name                 String
+  nameKey              String         @unique @map("name_key")
+  description          String         @default("")
+  notificationsEnabled Boolean        @default(true) @map("notifications_enabled")
+  position             Int            @default(0)
+  lastProgressAt       DateTime       @default(now()) @map("last_progress_at")
+  archivedAt           DateTime?      @map("archived_at")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+  resources            Resource[]
+  certification        Certification?
+  notifications        Notification[]
+
+  @@map("skills")
+}
+
+model Resource {
+  id                       String         @id @default(uuid()) @db.Uuid
+  skillId                  String         @db.Uuid @map("skill_id")
+  skill                    Skill          @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  title                    String
+  url                      String
+  estimatedDurationMinutes Int            @map("estimated_duration_minutes")
+  targetDate               DateTime?      @db.Date @map("target_date")
+  position                 Int            @default(0)
+  status                   ResourceStatus @default(PLANNED)
+  startedAt                DateTime?      @map("started_at")
+  completedAt              DateTime?      @map("completed_at")
+  archivedAt               DateTime?      @map("archived_at")
+  createdAt                DateTime       @default(now()) @map("created_at")
+  updatedAt                DateTime       @updatedAt @map("updated_at")
+  notifications            Notification[]
+
+  @@index([skillId, position])
+  @@index([status, completedAt])
+  @@map("resources")
+}
+
+model Certification {
+  id            String         @id @default(uuid()) @db.Uuid
+  skillId       String         @unique @db.Uuid @map("skill_id")
+  skill         Skill          @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  title         String
+  url           String?
+  targetDate    DateTime?      @db.Date @map("target_date")
+  proofUrl      String?        @map("proof_url")
+  completedAt   DateTime?      @map("completed_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  notifications Notification[]
+
+  @@map("certifications")
+}
+
+model NotificationSettings {
+  id                Int      @id @default(1)
+  timezone          String   @default("Asia/Jakarta")
+  dueEnabled        Boolean  @default(true) @map("due_enabled")
+  dueLeadDays       Int      @default(3) @map("due_lead_days")
+  inactivityEnabled Boolean  @default(true) @map("inactivity_enabled")
+  inactivityDays    Int      @default(14) @map("inactivity_days")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_settings")
+}
+
+model Notification {
+  id              String            @id @default(uuid()) @db.Uuid
+  type            NotificationType
+  skillId         String            @db.Uuid @map("skill_id")
+  skill           Skill             @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  resourceId      String?           @db.Uuid @map("resource_id")
+  resource        Resource?         @relation(fields: [resourceId], references: [id], onDelete: SetNull)
+  certificationId String?           @db.Uuid @map("certification_id")
+  certification   Certification?    @relation(fields: [certificationId], references: [id], onDelete: SetNull)
+  title           String
+  message         String
+  dedupeKey       String            @unique @map("dedupe_key")
+  readAt          DateTime?         @map("read_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  @@index([readAt, createdAt])
+  @@map("notifications")
+}

@@ -1,0 +1,18 @@
+{
+  "name": "skill-progress-tracker",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "npm run dev -w @progress/web",
+    "dev:api": "npm run dev -w @progress/api",
+    "dev:worker": "npm run worker -w @progress/api",
+    "build": "npm run build -w @progress/contracts && npm run build -w @progress/api && npm run build -w @progress/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test -w @progress/api",
+    "lint": "npm run lint -w @progress/web",
+    "db:generate": "npm run db:generate -w @progress/api",
+    "db:migrate": "npm run db:migrate -w @progress/api",
+    "db:seed": "npm run db:seed -w @progress/api"
+  },
+  "engines": { "node": ">=22" }
+}
